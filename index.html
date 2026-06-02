@@ -1,0 +1,700 @@
+<!-- Janitorial Inventory Tracker -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+
+  :root {
+    --bg: #ffffff;
+    --panel: #ffffff;
+    --panel-2: #f3f6fa;
+    --line: #dce3ec;
+    --ink: #0d1626;          /* near-black text/accents */
+    --ink-dim: #5a6776;
+    --accent: #143a6b;       /* dark blue */
+    --accent-ink: #ffffff;
+    --warn: #e08a00;         /* low-stock amber */
+    --green: #1f9d63;
+    --red: #d83b34;
+    --blue: #143a6b;
+    --radius: 10px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background:
+      radial-gradient(900px 500px at 100% -10%, #eef3fa 0%, transparent 60%),
+      var(--bg);
+    color: var(--ink);
+    font-family: 'Archivo', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    padding: 18px;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+
+  /* Header */
+  header {
+    display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px;
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 14px; margin-bottom: 16px;
+  }
+  .title { display: flex; align-items: center; gap: 12px; }
+  .badge-icon {
+    width: 40px; height: 40px; border-radius: 8px; flex: none;
+    background: var(--ink); color: #fff;
+    display: grid; place-items: center; font-weight: 800; font-size: 20px;
+    box-shadow: 0 4px 14px rgba(13,22,38,.22);
+  }
+  h1 {
+    font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -.4px;
+    text-transform: uppercase;
+  }
+  .sub { color: var(--ink-dim); font-size: 12px; margin-top: 2px; letter-spacing: .3px; }
+
+  .stats { display: flex; gap: 10px; margin-left: auto; }
+  .stat {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 12px; min-width: 64px; text-align: center;
+  }
+  .stat .n { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; }
+  .stat .l { font-size: 10px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: .5px; }
+  .stat.low .n { color: var(--warn); }
+  .stat.out .n { color: var(--red); }
+
+  /* Toolbar */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .search {
+    flex: 1 1 220px; min-width: 180px;
+    background: var(--panel); border: 1px solid var(--line); color: var(--ink);
+    border-radius: 8px; padding: 9px 12px; font-family: inherit; font-size: 14px;
+  }
+  .search::placeholder { color: var(--ink-dim); }
+  .search:focus { outline: none; border-color: var(--accent); }
+
+  button {
+    font-family: 'Archivo', sans-serif; font-weight: 600; cursor: pointer;
+    border-radius: 8px; border: 1px solid var(--line); background: var(--panel);
+    color: var(--ink); padding: 9px 13px; font-size: 13px; transition: .12s;
+  }
+  button:hover { border-color: var(--ink-dim); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.primary:hover { filter: brightness(1.06); }
+  button.ghost { background: transparent; }
+
+  /* Category chips */
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 14px; }
+  .chip {
+    font-size: 12px; padding: 6px 11px; border-radius: 999px;
+    border: 1px solid var(--line); background: var(--panel); color: var(--ink-dim);
+    cursor: pointer; font-weight: 600; transition: .12s; white-space: nowrap;
+  }
+  .chip:hover { color: var(--ink); }
+  .chip.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+  /* Group */
+  .group-head {
+    display: flex; align-items: center; gap: 10px; margin: 18px 0 8px;
+  }
+  .group-head h2 {
+    font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;
+    margin: 0; color: var(--accent);
+  }
+  .group-head .rule { flex: 1; height: 1px; background: var(--line); }
+  .group-head .count { font-size: 11px; color: var(--ink-dim); font-family: 'JetBrains Mono', monospace; }
+
+  /* Rows */
+  .row {
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    align-items: center; gap: 12px;
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 10px 14px; margin-bottom: 7px;
+    transition: border-color .12s;
+  }
+  .row:hover { border-color: var(--accent); }
+  .row.is-out { border-left: 3px solid var(--red); }
+  .row.is-low { border-left: 3px solid var(--warn); }
+  .row.is-ok  { border-left: 3px solid transparent; }
+
+  .name { font-size: 14px; font-weight: 500; line-height: 1.25; }
+  .name .meta { display: block; font-size: 11px; color: var(--ink-dim); margin-top: 2px; }
+
+  .counts { display: flex; gap: 12px; }
+  .qtybox, .order { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .qtybox > label, .order > label {
+    font-size: 9px; color: var(--ink-dim); text-transform: uppercase;
+    letter-spacing: .5px; font-weight: 700;
+  }
+  .stepper { display: flex; align-items: center; gap: 0; }
+  .stepper button {
+    width: 28px; height: 30px; padding: 0; font-size: 17px; line-height: 1;
+    border-radius: 7px; display: grid; place-items: center;
+  }
+  .stepper input {
+    width: 42px; text-align: center; background: var(--panel-2); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 7px; margin: 0 4px;
+    font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; padding: 6px 0;
+  }
+  .stepper input:focus { outline: none; border-color: var(--accent); }
+
+  .order input {
+    width: 52px; text-align: center; background: transparent; color: var(--accent);
+    border: 1px dashed var(--accent); border-radius: 6px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace; font-size: 14px; padding: 6px 0;
+  }
+  .order input:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
+
+  .status { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+    padding: 4px 8px; border-radius: 999px; white-space: nowrap; min-width: 54px; text-align: center; }
+  .status.ok  { color: var(--green); background: rgba(31,157,99,.12); }
+  .status.low { color: var(--warn); background: rgba(224,138,0,.14); }
+  .status.out { color: var(--red); background: rgba(216,59,52,.12); }
+
+  /* Settings / sync panel */
+  .panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 14px 16px; margin-top: 20px;
+  }
+  .panel h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .8px; }
+  .panel p { margin: 0 0 10px; font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
+  .panel .urlrow { display: flex; gap: 8px; flex-wrap: wrap; }
+  .panel input[type=text] {
+    flex: 1 1 280px; background: var(--panel-2); border: 1px solid var(--line); color: var(--ink);
+    border-radius: 8px; padding: 9px 11px; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  }
+  .panel input[type=text]:focus { outline: none; border-color: var(--accent); }
+
+  .savebar {
+    position: sticky; bottom: 10px; margin-top: 18px;
+    display: flex; align-items: center; gap: 10px; justify-content: center;
+    font-size: 12px; color: var(--ink-dim);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .dot.saving { background: var(--warn); }
+
+  .hidden { display: none !important; }
+  .toast {
+    position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: var(--bg); padding: 11px 18px; border-radius: 10px;
+    font-weight: 600; font-size: 13px; opacity: 0; transition: .25s; pointer-events: none; z-index: 50;
+    box-shadow: 0 8px 30px rgba(0,0,0,.4);
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  button.dark { background: var(--ink); color: #fff; border-color: var(--ink); }
+  button.dark:hover { filter: brightness(1.15); }
+
+  /* Custom item remove link */
+  .name .remove {
+    border: none; background: none; color: var(--red); cursor: pointer;
+    font: 600 11px 'Archivo', sans-serif; padding: 0; margin-top: 3px; text-decoration: underline;
+  }
+  .name .tag {
+    display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: .5px;
+    text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent);
+    border-radius: 4px; padding: 1px 5px; margin-left: 6px; vertical-align: middle;
+  }
+
+  /* Add-item modal */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(13,22,38,.45);
+    display: none; align-items: center; justify-content: center; z-index: 60; padding: 18px;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: #fff; border: 1px solid var(--line); border-radius: 14px;
+    width: 100%; max-width: 420px; padding: 22px;
+    box-shadow: 0 20px 60px rgba(13,22,38,.3);
+  }
+  .modal h3 { margin: 0 0 4px; font-size: 18px; font-weight: 800; }
+  .modal-sub { margin: 0 0 16px; font-size: 12px; color: var(--ink-dim); }
+  .fld { display: block; font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 12px; }
+  .fld .opt { color: var(--ink-dim); font-weight: 400; }
+  .fld input, .fld select {
+    display: block; width: 100%; margin-top: 5px;
+    background: var(--panel-2); border: 1px solid var(--line); color: var(--ink);
+    border-radius: 8px; padding: 9px 11px; font-family: 'Archivo', sans-serif; font-size: 14px;
+  }
+  .fld input:focus, .fld select:focus { outline: none; border-color: var(--accent); }
+  .fld-row { display: flex; gap: 12px; }
+  .fld-row .fld { flex: 1; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+
+  @media (max-width: 560px) {
+    .row { grid-template-columns: 1fr auto; grid-template-areas: "name status" "counts order"; row-gap: 10px; }
+    .name { grid-area: name; }
+    .status { grid-area: status; justify-self: end; }
+    .counts { grid-area: counts; }
+    .order { grid-area: order; align-items: flex-start; }
+    .stats { margin-left: 0; width: 100%; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="title">
+      <div class="badge-icon">⬢</div>
+      <div>
+        <h1>Supply Inventory</h1>
+        <div class="sub" id="subline">Janitorial & cleaning stock tracker</div>
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="st-total">0</div><div class="l">SKUs</div></div>
+      <div class="stat low"><div class="n" id="st-low">0</div><div class="l">To order</div></div>
+      <div class="stat out"><div class="n" id="st-out">0</div><div class="l">Out</div></div>
+    </div>
+  </header>
+
+  <div class="toolbar">
+    <input class="search" id="search" placeholder="Search products…" autocomplete="off">
+    <input class="search" id="who" style="flex:0 1 150px; min-width:120px;" placeholder="Logged by…" autocomplete="off">
+    <button class="dark" id="btn-add">+ Add item</button>
+    <button id="btn-copy">⧉ Copy for Sheets</button>
+    <button id="btn-csv">↓ Export CSV</button>
+    <button class="primary hidden" id="btn-sync">⟳ Sync to Sheet</button>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div id="list"></div>
+
+  <div class="panel">
+    <h3>Connect a Google Sheet (optional)</h3>
+    <p>Paste a Google Apps Script Web App URL below to push this inventory straight into a sheet with one tap. Setup steps are in the chat. Leave blank to just use Copy / Export.</p>
+    <div class="urlrow">
+      <input type="text" id="webhook" placeholder="https://script.google.com/macros/s/…/exec">
+      <button id="btn-savehook">Save URL</button>
+    </div>
+  </div>
+
+  <div class="savebar">
+    <span class="dot" id="dot"></span>
+    <span id="savetext">All changes saved on this device</span>
+    &nbsp;·&nbsp;
+    <button class="ghost" id="btn-reset" style="padding:4px 10px;font-size:11px;">Reset all counts</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>Add an item</h3>
+    <p class="modal-sub">For one-off purchases or stock not on the standard list.</p>
+    <label class="fld">Item name
+      <input type="text" id="add-name" placeholder="e.g. Floor squeegee 18&quot;" autocomplete="off">
+    </label>
+    <label class="fld">Category
+      <select id="add-cat"></select>
+    </label>
+    <div class="fld-row">
+      <label class="fld">Qty EA
+        <input type="number" id="add-ea" min="0" value="0" inputmode="numeric">
+      </label>
+      <label class="fld">Qty CS
+        <input type="number" id="add-cs" min="0" value="0" inputmode="numeric">
+      </label>
+      <label class="fld">Order <span class="opt">(opt.)</span>
+        <input type="number" id="add-order" min="0" placeholder="—" inputmode="numeric">
+      </label>
+    </div>
+    <div class="modal-actions">
+      <button class="ghost" id="add-cancel">Cancel</button>
+      <button class="primary" id="add-save">Add item</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Product data ----------
+const SEED = [
+  ["Chemicals & Cleaners", [
+    "Spartan HDQ Neutral Germ Cleaner 1GAL",
+    "Spartan Glass Cleaner 1GAL",
+    "Spartan COTG #2 HDQC 2LTR",
+    "Spartan Glass + Surface COTG #3 2LTR",
+    "SparCling",
+    "SparCreme",
+    "Aero Shiny Stainless Steel (Oil Based)",
+    "Spartan SANI-T-10 Sanitizer",
+    "Spartan Dampmop Neutral Floor Cleaner",
+    "Tile & Grout Cleaner",
+    "ECO-GRIP Commercial Floor Cleaner",
+    "Clean by Peroxy",
+    "Spartan Sure Step",
+    "Spartan Fast & Easy",
+    "SparSan Q",
+    "Tree-Z",
+    "Spartan SC-200 Degreaser 55GAL",
+    "Dispenser - Spartan Dual",
+  ]],
+  ["Floor Finish & Strip", [
+    "On & On Floor Finish 5GAL",
+    "Emulsifier Plus Floor Stripper 5GAL",
+  ]],
+  ["Mops & Dusting", [
+    'Dust Mop Cover 24"',
+    'Dust Mop Frame 24"',
+    'Dust Mop Cover 36"',
+    'Dust Mop Frame 36"',
+    "Dust Mop Handle",
+    "Medium Blue WB Looped Blend Mop",
+    "Medium Red Microfiber Mop Head",
+    "Medium Blue Microfiber Mop Head",
+    'Mop Handle 60" Fiberglass Gripper',
+    "Mop Bucket",
+  ]],
+  ["Cloths & Hand Tools", [
+    "Microfiber Cloth - Blue",
+    "Microfiber Cloth - Red",
+    "Lobby Dust Pan - Black",
+    "Angled Broom - Duo-Sweep",
+    "Wolly Duster",
+    "Spartan Bowl Swab (Acrilon)",
+    "Magic Eraser",
+    "Pumie Scouring Stick",
+  ]],
+  ["Equipment & Carts", [
+    "Vacuum - Sanitaire",
+    "Vacuum Backpack - Bag",
+    "Grey Trash Can",
+    "Caddie Bag",
+    "Janitor Cart",
+    "Janitor Cart Bag",
+  ]],
+  ["Bottles & Labeling", [
+    "Bottle",
+    "Trigger Sprayer",
+    "Labels (Type 1)",
+    "Labels (Type 2)",
+  ]],
+  ["Floor Pads", [
+    '14" Red Spray Pad',
+    '14" Green Polish Pad',
+    '16" Black Strip Pad',
+    '16" Green Scrub Pad',
+    '16" Red Spray Puff Pad',
+    '16" White Polish Pad',
+    '20" Black SuperStrip Pad',
+    '20" Champagne Pad',
+    '20" Green Scrub Pad',
+    '20" Red Buffer Pad',
+    '20" White Polish Pad',
+  ]],
+];
+
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+// Build the working model
+let items = [];
+SEED.forEach(([cat, names]) => {
+  names.forEach(n => items.push({ id: slug(cat) + "__" + slug(n), name: n, cat, ea: 0, cs: 0, order: 0 }));
+});
+
+let webhook = "";
+let loggedBy = "";
+let activeCat = "All";
+let query = "";
+const ONEOFF_CAT = "Other / One-off";
+const STORE_KEY = "inventory-data-v1";
+const ls = (function(){ try { localStorage.setItem("__t","1"); localStorage.removeItem("__t"); return localStorage; } catch(e){ return null; } })();
+const store = {
+  get: async (k) => {
+    if (window.storage && window.storage.get) return await window.storage.get(k);
+    if (ls) { const v = ls.getItem(k); return v != null ? { value: v } : null; }
+    return null;
+  },
+  set: async (k, v) => {
+    if (window.storage && window.storage.set) return await window.storage.set(k, v);
+    if (ls) { ls.setItem(k, v); return { value: v }; }
+    return null;
+  }
+};
+const hasStore = !!((window.storage && window.storage.get) || ls);
+
+// Categories in display order: the standard ones, then any custom-only ones.
+function orderedCats() {
+  const cats = SEED.map(s => s[0]);
+  items.forEach(it => { if (!cats.includes(it.cat)) cats.push(it.cat); });
+  return cats;
+}
+
+// ---------- Persistence ----------
+async function load() {
+  if (!hasStore) { document.getElementById("savetext").textContent = "In-memory only (storage unavailable)"; return; }
+  try {
+    const res = await store.get(STORE_KEY);
+    if (res && res.value) {
+      const saved = JSON.parse(res.value);
+      if (saved.items) {
+        const map = {};
+        saved.items.forEach(s => map[s.id] = s);
+        items.forEach(it => {
+          const s = map[it.id];
+          if (s) {
+            it.ea = (s.ea != null ? s.ea : (s.qty || 0)) || 0;   // migrate old "qty" -> EA
+            it.cs = s.cs || 0;
+            it.order = (s.order != null ? s.order : (s.par || 0)) || 0; // migrate old "par" -> order
+          }
+        });
+        // Re-add any custom (user-added) items
+        saved.items.forEach(s => {
+          if (s.custom && !items.some(it => it.id === s.id)) {
+            items.push({
+              id: s.id, name: s.name, cat: s.cat, custom: true,
+              ea: (s.ea != null ? s.ea : (s.qty || 0)) || 0,
+              cs: s.cs || 0,
+              order: (s.order != null ? s.order : (s.par || 0)) || 0
+            });
+          }
+        });
+      }
+      if (saved.webhook) { webhook = saved.webhook; }
+      if (saved.loggedBy) { loggedBy = saved.loggedBy; }
+    }
+  } catch(e) { /* no saved data yet */ }
+}
+
+let saveTimer = null;
+function queueSave() {
+  const dot = document.getElementById("dot");
+  const txt = document.getElementById("savetext");
+  dot.classList.add("saving"); txt.textContent = "Saving…";
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(doSave, 500);
+}
+async function doSave() {
+  const dot = document.getElementById("dot");
+  const txt = document.getElementById("savetext");
+  if (!hasStore) { dot.classList.remove("saving"); return; }
+  try {
+    await store.set(STORE_KEY, JSON.stringify({ items, webhook, loggedBy }));
+    dot.classList.remove("saving"); txt.textContent = "All changes saved on this device";
+  } catch(e) {
+    dot.classList.remove("saving"); txt.textContent = "Save failed — try again";
+  }
+}
+
+// ---------- Status ----------
+function statusOf(it) {
+  if ((it.ea || 0) <= 0 && (it.cs || 0) <= 0) return "out";   // nothing on hand
+  if ((it.order || 0) > 0) return "low";                       // flagged to reorder
+  return "ok";
+}
+
+// ---------- Render ----------
+function render() {
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+  let total = 0, low = 0, out = 0;
+
+  orderedCats().forEach((cat) => {
+    if (activeCat !== "All" && activeCat !== cat) return;
+    const inCat = items.filter(it => it.cat === cat &&
+      (!query || it.name.toLowerCase().includes(query)));
+    if (!inCat.length) return;
+
+    const gh = document.createElement("div");
+    gh.className = "group-head";
+    gh.innerHTML = `<h2>${cat}</h2><div class="rule"></div><div class="count">${inCat.length}</div>`;
+    list.appendChild(gh);
+
+    inCat.forEach(it => {
+      const st = statusOf(it);
+      const row = document.createElement("div");
+      row.className = "row is-" + st;
+      row.innerHTML = `
+        <div class="name">${it.name}${it.custom ? `<span class="tag">Added</span>` : ``}
+          ${it.custom ? `<button class="remove" data-del="${it.id}">Remove</button>` : ``}
+        </div>
+        <div class="counts">
+          <div class="qtybox">
+            <label>Qty EA</label>
+            <div class="stepper">
+              <button data-act="dec" data-unit="ea" data-id="${it.id}">−</button>
+              <input type="number" inputmode="numeric" min="0" value="${it.ea}" data-ea="${it.id}">
+              <button data-act="inc" data-unit="ea" data-id="${it.id}">+</button>
+            </div>
+          </div>
+          <div class="qtybox">
+            <label>Qty CS</label>
+            <div class="stepper">
+              <button data-act="dec" data-unit="cs" data-id="${it.id}">−</button>
+              <input type="number" inputmode="numeric" min="0" value="${it.cs}" data-cs="${it.id}">
+              <button data-act="inc" data-unit="cs" data-id="${it.id}">+</button>
+            </div>
+          </div>
+        </div>
+        <div class="order">
+          <label>Order</label>
+          <input type="number" inputmode="numeric" min="0" value="${it.order||""}" placeholder="—" data-order="${it.id}">
+        </div>
+        <div class="status ${st}">${st==="ok"?"In stock":st==="low"?"Reorder":"Out"}</div>`;
+      list.appendChild(row);
+    });
+  });
+
+  items.forEach(it => {
+    total++;
+    const st = statusOf(it);
+    if (st === "low") low++;
+    if (st === "out") out++;
+  });
+  document.getElementById("st-total").textContent = total;
+  document.getElementById("st-low").textContent = low;
+  document.getElementById("st-out").textContent = out;
+
+  if (!list.children.length) {
+    list.innerHTML = `<p style="color:var(--ink-dim);text-align:center;padding:30px;">No products match "${query}".</p>`;
+  }
+}
+
+function renderChips() {
+  const c = document.getElementById("chips");
+  const cats = ["All", ...orderedCats()];
+  c.innerHTML = "";
+  cats.forEach(cat => {
+    const b = document.createElement("button");
+    b.className = "chip" + (cat === activeCat ? " active" : "");
+    b.textContent = cat;
+    b.onclick = () => { activeCat = cat; renderChips(); render(); };
+    c.appendChild(b);
+  });
+}
+
+// ---------- Events (delegated) ----------
+document.getElementById("list").addEventListener("click", e => {
+  const del = e.target.closest("button[data-del]");
+  if (del) {
+    const it = items.find(i => i.id === del.dataset.del);
+    if (it && confirm("Remove \"" + it.name + "\" from the list?")) {
+      items = items.filter(i => i.id !== del.dataset.del);
+      renderChips(); render(); queueSave(); toast("Item removed");
+    }
+    return;
+  }
+  const btn = e.target.closest("button[data-act]");
+  if (!btn) return;
+  const it = items.find(i => i.id === btn.dataset.id);
+  if (!it) return;
+  const unit = btn.dataset.unit; // "ea" or "cs"
+  if (btn.dataset.act === "inc") it[unit] = (it[unit] || 0) + 1;
+  if (btn.dataset.act === "dec") it[unit] = Math.max(0, (it[unit] || 0) - 1);
+  render(); queueSave();
+});
+document.getElementById("list").addEventListener("change", e => {
+  const ea = e.target.getAttribute("data-ea");
+  const cs = e.target.getAttribute("data-cs");
+  const od = e.target.getAttribute("data-order");
+  const val = Math.max(0, parseInt(e.target.value) || 0);
+  if (ea) { items.find(i=>i.id===ea).ea = val; render(); queueSave(); }
+  if (cs) { items.find(i=>i.id===cs).cs = val; render(); queueSave(); }
+  if (od) { items.find(i=>i.id===od).order = val; render(); queueSave(); }
+});
+document.getElementById("search").addEventListener("input", e => {
+  query = e.target.value.trim().toLowerCase(); render();
+});
+document.getElementById("who").addEventListener("input", e => {
+  loggedBy = e.target.value.trim(); queueSave();
+});
+
+// ---------- Add item modal ----------
+const overlay = document.getElementById("overlay");
+function openAdd() {
+  const sel = document.getElementById("add-cat");
+  sel.innerHTML = "";
+  [...SEED.map(s => s[0]), ONEOFF_CAT].forEach(c => {
+    const o = document.createElement("option");
+    o.value = c; o.textContent = c;
+    if (c === ONEOFF_CAT) o.selected = true;
+    sel.appendChild(o);
+  });
+  document.getElementById("add-name").value = "";
+  document.getElementById("add-ea").value = "0";
+  document.getElementById("add-cs").value = "0";
+  document.getElementById("add-order").value = "";
+  overlay.classList.add("show");
+  document.getElementById("add-name").focus();
+}
+function closeAdd() { overlay.classList.remove("show"); }
+function saveAdd() {
+  const name = document.getElementById("add-name").value.trim();
+  if (!name) { document.getElementById("add-name").focus(); toast("Enter an item name"); return; }
+  const cat = document.getElementById("add-cat").value;
+  const ea = Math.max(0, parseInt(document.getElementById("add-ea").value) || 0);
+  const cs = Math.max(0, parseInt(document.getElementById("add-cs").value) || 0);
+  const order = Math.max(0, parseInt(document.getElementById("add-order").value) || 0);
+  const id = "custom__" + slug(name) + "__" + Date.now();
+  items.push({ id, name, cat, ea, cs, order, custom: true });
+  activeCat = cat;          // jump to the category so the new item is visible
+  closeAdd(); renderChips(); render(); queueSave();
+  toast("Added: " + name);
+}
+document.getElementById("btn-add").onclick = openAdd;
+document.getElementById("add-cancel").onclick = closeAdd;
+document.getElementById("add-save").onclick = saveAdd;
+overlay.addEventListener("click", e => { if (e.target === overlay) closeAdd(); });
+document.getElementById("add-name").addEventListener("keydown", e => { if (e.key === "Enter") saveAdd(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeAdd(); });
+
+// ---------- Export helpers ----------
+function rows() {
+  const out = [["Category","Product","Qty EA","Qty CS","Order","Status"]];
+  items.forEach(it => {
+    const st = statusOf(it);
+    out.push([it.cat, it.name, it.ea||0, it.cs||0, it.order||"", st==="ok"?"In stock":st==="low"?"Reorder":"Out"]);
+  });
+  return out;
+}
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 2200);
+}
+document.getElementById("btn-copy").onclick = async () => {
+  const tsv = rows().map(r => r.join("\t")).join("\n");
+  try { await navigator.clipboard.writeText(tsv); toast("Copied — paste into Google Sheets"); }
+  catch(e){ toast("Copy failed — use Export CSV instead"); }
+};
+document.getElementById("btn-csv").onclick = () => {
+  const csv = rows().map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "inventory-" + new Date().toISOString().slice(0,10) + ".csv";
+  a.click(); toast("CSV downloaded");
+};
+document.getElementById("btn-sync").onclick = async () => {
+  if (!webhook) return;
+  toast("Sending to Google Sheet…");
+  try {
+    await fetch(webhook, {
+      method: "POST", mode: "no-cors",
+      headers: {"Content-Type":"text/plain"},
+      body: JSON.stringify({ rows: rows(), by: loggedBy, ts: new Date().toISOString() })
+    });
+    toast("Sent to your Google Sheet ✓");
+  } catch(e) { toast("Sync failed — check the URL"); }
+};
+document.getElementById("btn-savehook").onclick = () => {
+  webhook = document.getElementById("webhook").value.trim();
+  document.getElementById("btn-sync").classList.toggle("hidden", !webhook);
+  queueSave(); toast(webhook ? "Sheet connected" : "URL cleared");
+};
+document.getElementById("btn-reset").onclick = () => {
+  if (!confirm("Reset every on-hand count (EA and CS) to 0? Order amounts are kept.")) return;
+  items.forEach(it => { it.ea = 0; it.cs = 0; }); render(); queueSave(); toast("All counts reset");
+};
+
+// ---------- Boot ----------
+(async () => {
+  await load();
+  document.getElementById("webhook").value = webhook;
+  document.getElementById("who").value = loggedBy;
+  document.getElementById("btn-sync").classList.toggle("hidden", !webhook);
+  renderChips();
+  render();
+})();
+</script>
