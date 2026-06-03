@@ -249,6 +249,10 @@
 
   <div class="toolbar">
     <input class="search" id="search" placeholder="Search products…" autocomplete="off">
+    <select class="search" id="loc" style="flex:0 1 140px; min-width:115px;">
+      <option>305 Storage</option>
+      <option>Blue Store</option>
+    </select>
     <input class="search" id="who" style="flex:0 1 150px; min-width:120px;" placeholder="Logged by…" autocomplete="off">
     <button class="dark" id="btn-add">+ Add item</button>
     <button id="btn-copy">⧉ Copy for Sheets</button>
@@ -395,6 +399,7 @@ SEED.forEach(([cat, names]) => {
 
 let webhook = "";
 let loggedBy = "";
+let storageLoc = "305 Storage";
 let activeCat = "All";
 let query = "";
 const ONEOFF_CAT = "Other / One-off";
@@ -453,6 +458,7 @@ async function load() {
       }
       if (saved.webhook) { webhook = saved.webhook; }
       if (saved.loggedBy) { loggedBy = saved.loggedBy; }
+      if (saved.loc) { storageLoc = saved.loc; }
     }
   } catch(e) { /* no saved data yet */ }
 }
@@ -470,7 +476,7 @@ async function doSave() {
   const txt = document.getElementById("savetext");
   if (!hasStore) { dot.classList.remove("saving"); return; }
   try {
-    await store.set(STORE_KEY, JSON.stringify({ items, webhook, loggedBy }));
+    await store.set(STORE_KEY, JSON.stringify({ items, webhook, loggedBy, loc: storageLoc }));
     dot.classList.remove("saving"); txt.textContent = "All changes saved on this device";
   } catch(e) {
     dot.classList.remove("saving"); txt.textContent = "Save failed — try again";
@@ -599,6 +605,9 @@ document.getElementById("search").addEventListener("input", e => {
 document.getElementById("who").addEventListener("input", e => {
   loggedBy = e.target.value.trim(); queueSave();
 });
+document.getElementById("loc").addEventListener("change", e => {
+  storageLoc = e.target.value; queueSave();
+});
 
 // ---------- Add item modal ----------
 const overlay = document.getElementById("overlay");
@@ -673,7 +682,7 @@ document.getElementById("btn-sync").onclick = async () => {
     await fetch(webhook, {
       method: "POST", mode: "no-cors",
       headers: {"Content-Type":"text/plain"},
-      body: JSON.stringify({ rows: rows(), by: loggedBy, ts: new Date().toISOString() })
+      body: JSON.stringify({ rows: rows(), by: loggedBy, loc: storageLoc, ts: new Date().toISOString() })
     });
     toast("Sent to your Google Sheet ✓");
   } catch(e) { toast("Sync failed — check the URL"); }
@@ -693,6 +702,7 @@ document.getElementById("btn-reset").onclick = () => {
   await load();
   document.getElementById("webhook").value = webhook;
   document.getElementById("who").value = loggedBy;
+  document.getElementById("loc").value = storageLoc;
   document.getElementById("btn-sync").classList.toggle("hidden", !webhook);
   renderChips();
   render();
